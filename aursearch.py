@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 """
@@ -16,6 +17,8 @@ class QueryType(object):
     def __init__(self, term):
         self.logger = logging.getLogger('aursearch')
         self.term = term
+        self.emphasis_color = '\033[1;33m'
+        self.normal_color = '\033[0m'
 
     def url(self, type_):
         """Return the URL for the specified query."""
@@ -24,16 +27,28 @@ class QueryType(object):
         self.logger.info("URL is %s" % url)
         return url
 
+    def package_to_str(self, package):
+        """Return a string describing the package."""
+        return 'Package: %s%s%s\nDescription: %s\nURL: %s' % (
+            self.emphasis_color,
+            package.get('Name'),
+            self.normal_color,
+            package.get('Description'),
+            package.get('URL')
+        )
+
 
 class InfoQuery(QueryType):
     """Query type is info."""
 
-    def __init__(self, name):
-        super(InfoQuery, self).__init__(name)
+    def __init__(self, term):
+        super(InfoQuery, self).__init__(term)
         url = self.url()
         try:
             f = urllib.urlopen(url)
             self.info = json.loads(f.read())
+            self.type = self.info.get('type')
+            self.results = self.info.get('results')
         finally:
             f.close()
         self.logger.info(self.info)
@@ -41,11 +56,11 @@ class InfoQuery(QueryType):
     def url(self):
         return super(InfoQuery, self).url('info')
 
-    def __str__(self):
-        res = ''
-        for key, value in self.info.iteritems():
-            res += "%s: %s\n" % (key, value)
-        return res
+    def __unicode__(self):
+        if self.type != 'error':
+            return unicode(self.package_to_str(self.results))
+        else:
+            return u"Package %s not found." % self.term
 
 
 class SearchQuery(QueryType):
@@ -57,6 +72,8 @@ class SearchQuery(QueryType):
         try:
             f = urllib.urlopen(url)
             self.info = json.loads(f.read())
+            self.type = self.info.get('type')
+            self.results = self.info.get('results')
         finally:
             f.close()
         self.logger.info(self.info)        
@@ -64,11 +81,14 @@ class SearchQuery(QueryType):
     def url(self):
         return super(SearchQuery, self).url('search')
 
-    def __str__(self):
-        res = ''
-        for key, value in self.info.iteritems():
-            res += "%s: %s\n" % (key, value)
-        return res
+    def __unicode__(self):
+        if self.type != 'error':
+            res = u''
+            for package in self.results:
+                res += self.package_to_str(package) + '\n'
+            return res[:-1]
+        else:
+            return u"Packages matching %s not found" % self.term
 
 
 def setup_args():
@@ -94,8 +114,9 @@ def main():
 
     q = args.info and InfoQuery(args.term) or SearchQuery(args.term)
 
-    print q
-    
+    print q.__unicode__().encode('UTF-8')
+
+    return 0
 
 
 if __name__ == '__main__':
