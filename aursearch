@@ -23,7 +23,7 @@ class QueryType(object):
     def url(self, type_):
         """Return the URL for the specified query."""
         url = 'http://aur.archlinux.org/rpc.php'
-        url = ''.join([url, '?', 'type=', type_, '&arg=', self.term])    
+        url = ''.join([url, '?', 'type=', type_, '&arg=', self.term])
         self.logger.info("URL is %s" % url)
         return url
 
@@ -76,7 +76,7 @@ class SearchQuery(QueryType):
             self.results = self.info.get('results')
         finally:
             f.close()
-        self.logger.info(self.info)        
+        self.logger.info(self.info)
 
     def url(self):
         return super(SearchQuery, self).url('search')
@@ -104,19 +104,22 @@ def setup_args():
     return parser.parse_args()
 
 def main():
-    args = setup_args()
+    try:
+        args = setup_args()
 
-    logger = logging.getLogger('aursearch')
-    level = args.verbose and logging.INFO or logging.WARNING
-    logger.setLevel(level)
-    handler = logging.StreamHandler()
-    logger.addHandler(handler)
+        logger = logging.getLogger('aursearch')
+        level = args.verbose and logging.INFO or logging.WARNING
+        logger.setLevel(level)
+        handler = logging.StreamHandler()
+        logger.addHandler(handler)
 
-    q = args.info and InfoQuery(args.term) or SearchQuery(args.term)
+        q = args.info and InfoQuery(args.term) or SearchQuery(args.term)
 
-    print q.__unicode__().encode('UTF-8')
+        print q.__unicode__().encode('UTF-8')
 
-    return 0
+        return 0
+    except KeyboardInterrupt, e:
+        pass
 
 
 if __name__ == '__main__':
