@@ -10,6 +10,7 @@ import argparse
 import json
 import urllib
 import logging
+import contextlib
 
 
 class QueryType(object):
@@ -69,13 +70,10 @@ class SearchQuery(QueryType):
     def __init__(self, term):
         super(SearchQuery, self).__init__(term)
         url = self.url()
-        try:
-            f = urllib.urlopen(url)
+        with contextlib.closing(urllib.urlopen(url)) as f:
             self.info = json.loads(f.read())
             self.type = self.info.get('type')
             self.results = self.info.get('results')
-        finally:
-            f.close()
         self.logger.info(self.info)
 
     def url(self):
